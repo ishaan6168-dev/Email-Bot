@@ -288,8 +288,8 @@ const css = `
   .mc-heart:nth-child(2) { animation-delay: 1.2s; left: 60%; font-size: 10px; }
 
   /* Size variants */
-  .mc-sm .mc-root { transform: scale(0.32); transform-origin: bottom left; }
-  .mc-sm { width: 36px; height: 36px; }
+  .mc-sm .mc-root { transform: scale(0.32); transform-origin: center center; }
+  .mc-sm { width: 36px; height: 36px; overflow: hidden; }
   .mc-md .mc-root { transform: scale(0.65); transform-origin: bottom center; }
   .mc-md { width: 72px; height: 85px; }
   .mc-lg .mc-root { transform: scale(1.0); transform-origin: bottom center; }
