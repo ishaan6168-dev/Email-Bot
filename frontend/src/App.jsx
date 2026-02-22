@@ -426,7 +426,7 @@ const css = `
   .meta-chip .value { color: var(--text2); font-weight: 600; }
   .email-body-text { font-size: 13px; color: var(--text2); line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .draft-panel { border-top: 1px solid var(--dark4); background: var(--dark2); flex-shrink: 0; }
-  .draft-header { padding: 10px 22px; border-bottom: 1px solid var(--dark4); display: flex; align-items: center; gap: 8px; }
+  .draft-header { padding: 10px 22px; border-bottom: 1px solid var(--dark4); display: flex; align-items: center; gap: 8px; overflow: hidden; }
   .draft-title { font-weight: 800; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; }
   .draft-title span { color: var(--teal); }
   .draft-inputs { padding: 9px 22px; display: flex; gap: 9px; align-items: center; }
