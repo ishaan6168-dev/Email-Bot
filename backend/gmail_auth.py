@@ -15,7 +15,7 @@ SCOPES = [
 ]
 
 REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:8000/api/auth/callback")
-CREDENTIALS_FILE = "credentials.json"
+CREDENTIALS_FILE = "/etc/secrets/credentials.json" if os.path.exists("/etc/secrets/credentials.json") else "credentials.json"
 
 
 def get_auth_url():
