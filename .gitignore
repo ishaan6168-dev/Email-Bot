@@ -1,0 +1,10 @@
+.env
+token.json
+credentials.json
+__pycache__/
+*.pyc
+venv/
+node_modules/
+frontend/dist/
+backend/frontend/
+.DS_Store
