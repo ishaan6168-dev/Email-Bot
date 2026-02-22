@@ -1,161 +1,594 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;600;700&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #080B0F; --bg2: #0D1117; --bg3: #161B22; --bg4: #1C2330;
-    --border: #21262D; --border2: #30363D;
-    --text: #E6EDF3; --text2: #8B949E; --text3: #484F58;
-    --cyan: #39D0D8; --cyan-dim: #1A4D50;
-    --green: #3FB950; --green-dim: #1A3A1E;
-    --yellow: #D29922; --yellow-dim: #3A2A0A;
-    --red: #F85149; --red-dim: #3A1018;
-    --font-mono: 'IBM Plex Mono', monospace;
-    --font-sans: 'Syne', sans-serif;
+    --teal: #2ECFBF; --teal2: #1AADA0; --teal-glow: rgba(46,207,191,0.25);
+    --dark: #0E1A1F; --dark2: #152028; --dark3: #1C2D35; --dark4: #243540; --pill: #111C22;
+    --text: #F0FAF9; --text2: #A8CECA; --text3: #5A8A86;
+    --pink: #FF6B9D; --yellow: #FFD166; --green: #06D6A0; --red: #FF6B6B;
+    --skin: #FFDCB8; --skin2: #FFC89A; --hair: #FFD166;
+    --font: 'Nunito', sans-serif; --font-hand: 'Caveat', cursive;
   }
-  html, body, #root { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; line-height: 1.6; overflow: hidden; }
-  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg2); } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  html, body, #root { height: 100%; background: var(--dark); color: var(--text); font-family: var(--font); overflow: hidden; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  @keyframes popIn { from{opacity:0;transform:scale(0.4) translateY(30px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  @keyframes fadeOut { to{opacity:0;pointer-events:none} }
+  @keyframes fadeIn { to{opacity:1} }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  @keyframes blink { 0%,90%,100%{transform:scaleY(1)} 94%{transform:scaleY(0.08)} }
+  @keyframes wave { 0%,100%{transform:rotate(-25deg) translateY(0)} 50%{transform:rotate(-45deg) translateY(-3px)} }
+  @keyframes waveR { 0%,100%{transform:rotate(25deg) translateY(0)} 50%{transform:rotate(45deg) translateY(-3px)} }
+  @keyframes tailSwing { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+  @keyframes dotBounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-8px);opacity:1} }
+  @keyframes sparklePop { 0%,100%{opacity:0;transform:scale(0) rotate(0deg)} 50%{opacity:1;transform:scale(1) rotate(180deg)} }
+  @keyframes heartFloat { 0%{opacity:0;transform:translateY(0) scale(0)} 20%{opacity:1;transform:translateY(-10px) scale(1)} 100%{opacity:0;transform:translateY(-40px) scale(0.5)} }
+  @keyframes floatCircle { 0%,100%{transform:translateY(0) scale(1);opacity:0.4} 50%{transform:translateY(-20px) scale(1.1);opacity:0.7} }
+  @keyframes arrowPulse { 0%,100%{opacity:0.3;transform:rotate(45deg) translate(0,0)} 50%{opacity:1;transform:rotate(45deg) translate(3px,3px)} }
+  @keyframes slideIn { from{opacity:0;transform:translateX(20px) scale(0.9)} to{opacity:1;transform:translateX(0) scale(1)} }
+  @keyframes pulseGlow { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.6} 50%{transform:translate(-50%,-50%) scale(1.15);opacity:1} }
+  @keyframes blushPulse { 0%,100%{opacity:0.45} 50%{opacity:0.7} }
+  @keyframes earWiggle { 0%,100%{transform:rotate(-5deg) scaleX(1)} 50%{transform:rotate(5deg) scaleX(0.9)} }
+
+  /* ── MAIL-CHAN CSS CHARACTER ── */
+  .mc-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .mc-root {
+    position: relative;
+    width: 110px; height: 130px;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));
+  }
+
+  /* Body - cute round shape */
+  .mc-body {
+    position: absolute;
+    bottom: 0; left: 15px;
+    width: 80px; height: 66px;
+    background: linear-gradient(160deg, #fff 0%, #EAF9F8 100%);
+    border-radius: 50% 50% 40% 40% / 40% 40% 50% 50%;
+    border: 2.5px solid rgba(46,207,191,0.6);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.8);
+    z-index: 1;
+  }
+  /* Envelope M on body */
+  .mc-body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 34px;
+    background: linear-gradient(135deg, var(--teal) 0%, #1BC4B4 100%);
+    border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+    clip-path: polygon(0 0, 100% 0, 50% 55%);
+  }
+  .mc-body::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 33px;
+    background: rgba(46,207,191,0.07);
+    clip-path: polygon(0 100%, 50% 45%, 100% 100%);
+    border-radius: 0 0 40% 40%;
+  }
+  /* Arms */
+  .mc-arm-l {
+    position: absolute;
+    bottom: 22px; left: 4px;
+    width: 14px; height: 32px;
+    background: linear-gradient(145deg, var(--skin), var(--skin2));
+    border-radius: 7px 7px 9px 9px;
+    transform-origin: top center;
+    transform: rotate(-25deg);
+    animation: wave 2s ease-in-out infinite;
+    z-index: 0;
+    border: 1.5px solid rgba(255,160,100,0.4);
+  }
+  .mc-arm-r {
+    position: absolute;
+    bottom: 22px; right: 4px;
+    width: 14px; height: 32px;
+    background: linear-gradient(145deg, var(--skin), var(--skin2));
+    border-radius: 7px 7px 9px 9px;
+    transform-origin: top center;
+    transform: rotate(25deg);
+    animation: waveR 2s ease-in-out infinite;
+    z-index: 0;
+    border: 1.5px solid rgba(255,160,100,0.4);
+  }
+  /* Tiny hands */
+  .mc-arm-l::after, .mc-arm-r::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 50%; transform: translateX(-50%);
+    width: 12px; height: 10px;
+    background: var(--skin);
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,160,100,0.4);
+  }
+
+  /* HEAD */
+  .mc-head {
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 70px; height: 68px;
+    background: linear-gradient(145deg, #FFE8CC, var(--skin2));
+    border-radius: 50% 50% 46% 46% / 48% 48% 52% 52%;
+    z-index: 3;
+    border: 2px solid rgba(255,160,100,0.35);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25), inset 0 2px 0 rgba(255,255,255,0.5);
+  }
+
+  /* Hair */
+  .mc-hair-base {
+    position: absolute;
+    top: -8px; left: 50%; transform: translateX(-50%);
+    width: 76px; height: 40px;
+    background: linear-gradient(135deg, var(--hair), #FFC030);
+    border-radius: 50% 50% 20% 20%;
+    z-index: 4;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  /* Side bangs */
+  .mc-hair-base::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: -6px;
+    width: 18px; height: 28px;
+    background: linear-gradient(135deg, var(--hair), #FFC030);
+    border-radius: 40% 20% 40% 60%;
+    transform: rotate(-10deg);
+    box-shadow: -2px 2px 6px rgba(0,0,0,0.15);
+  }
+  .mc-hair-base::after {
+    content: '';
+    position: absolute;
+    top: 8px; right: -6px;
+    width: 18px; height: 28px;
+    background: linear-gradient(135deg, #FFC030, var(--hair));
+    border-radius: 20% 40% 60% 40%;
+    transform: rotate(10deg);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.15);
+  }
+  /* Teal hair clips */
+  .mc-clip-l, .mc-clip-r {
+    position: absolute;
+    top: 10px;
+    width: 10px; height: 10px;
+    background: var(--teal);
+    border-radius: 50%;
+    z-index: 6;
+    box-shadow: 0 0 6px var(--teal-glow);
+  }
+  .mc-clip-l { left: 12px; }
+  .mc-clip-r { right: 12px; }
+
+  /* Tails/pigtails */
+  .mc-tail-l {
+    position: absolute;
+    top: 16px; left: -14px;
+    width: 20px; height: 36px;
+    background: linear-gradient(160deg, var(--hair), #FFC030);
+    border-radius: 40% 20% 50% 60%;
+    transform-origin: top right;
+    animation: tailSwing 2.5s ease-in-out infinite;
+    z-index: 2;
+    box-shadow: -2px 4px 8px rgba(0,0,0,0.15);
+  }
+  .mc-tail-r {
+    position: absolute;
+    top: 16px; right: -14px;
+    width: 20px; height: 36px;
+    background: linear-gradient(160deg, #FFC030, var(--hair));
+    border-radius: 20% 40% 60% 50%;
+    transform-origin: top left;
+    animation: tailSwing 2.5s ease-in-out infinite reverse;
+    z-index: 2;
+    box-shadow: 2px 4px 8px rgba(0,0,0,0.15);
+  }
+
+  /* FACE */
+  .mc-eyes {
+    position: absolute;
+    top: 26px; left: 0; right: 0;
+    display: flex; justify-content: space-around;
+    padding: 0 10px; z-index: 5;
+  }
+  .mc-eye {
+    width: 13px; height: 16px;
+    background: #1A2535;
+    border-radius: 50%;
+    position: relative;
+    animation: blink 4s ease-in-out infinite;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  /* Iris */
+  .mc-eye::before {
+    content: '';
+    position: absolute;
+    width: 9px; height: 11px;
+    background: #2E6BFF;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+  }
+  /* Shine */
+  .mc-eye::after {
+    content: '';
+    position: absolute;
+    width: 4px; height: 5px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; right: 2px;
+    z-index: 1;
+  }
+
+  /* Blush */
+  .mc-blush-l, .mc-blush-r {
+    position: absolute;
+    top: 38px;
+    width: 16px; height: 8px;
+    background: rgba(255,100,140,0.45);
+    border-radius: 50%;
+    z-index: 5;
+    animation: blushPulse 3s ease-in-out infinite;
+  }
+  .mc-blush-l { left: 7px; }
+  .mc-blush-r { right: 7px; }
+
+  /* Mouth - happy smile */
+  .mc-mouth {
+    position: absolute;
+    bottom: 11px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 9px;
+    border-bottom: 3px solid #D4704A;
+    border-left: 1.5px solid transparent;
+    border-right: 1.5px solid transparent;
+    border-radius: 0 0 50% 50%;
+    z-index: 5;
+  }
+
+  /* Envelope badge on tummy */
+  .mc-badge {
+    position: absolute;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    width: 22px; height: 16px;
+    background: white;
+    border: 2px solid var(--teal);
+    border-radius: 3px;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(46,207,191,0.3);
+  }
+  .mc-badge::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 8px;
+    clip-path: polygon(0 0, 100% 0, 50% 60%);
+    background: var(--teal);
+  }
+
+  /* Sparkles around character */
+  .mc-sparkles { position: absolute; inset: -16px; pointer-events: none; }
+  .mc-sparkle {
+    position: absolute; color: var(--teal); font-size: 12px;
+    animation: sparklePop 2.5s ease-in-out infinite;
+  }
+  .mc-sparkle:nth-child(1) { top: 4px; left: 6px; }
+  .mc-sparkle:nth-child(2) { top: 8px; right: 2px; animation-delay: 0.8s; font-size: 9px; color: var(--yellow); }
+  .mc-sparkle:nth-child(3) { bottom: 10px; right: 0; animation-delay: 1.6s; font-size: 8px; color: var(--pink); }
+
+  /* Floating hearts (intro only) */
+  .mc-heart {
+    position: absolute; top: 0; left: 50%;
+    font-size: 14px; opacity: 0;
+    animation: heartFloat 2.5s ease-out infinite;
+  }
+  .mc-heart:nth-child(1) { animation-delay: 0s; left: 30%; }
+  .mc-heart:nth-child(2) { animation-delay: 1.2s; left: 60%; font-size: 10px; }
+
+  /* Size variants */
+  .mc-sm .mc-root { transform: scale(0.32); transform-origin: bottom left; }
+  .mc-sm { width: 36px; height: 36px; }
+  .mc-md .mc-root { transform: scale(0.65); transform-origin: bottom center; }
+  .mc-md { width: 72px; height: 85px; }
+  .mc-lg .mc-root { transform: scale(1.0); transform-origin: bottom center; }
+  .mc-lg { width: 110px; height: 130px; }
+  .mc-xl .mc-root { transform: scale(1.4); transform-origin: bottom center; }
+  .mc-xl { width: 154px; height: 182px; }
+
+  /* ── LOADING SCREEN ── */
+  .loading-screen {
+    position: fixed; inset: 0; background: var(--dark);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; animation: fadeOut 0.6s ease 2.8s forwards; pointer-events: none;
+  }
+  .loading-bg-circles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .loading-bg-circles span {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, var(--teal-glow), transparent);
+    animation: floatCircle 6s ease-in-out infinite;
+  }
+  .loading-bg-circles span:nth-child(1) { width: 320px; height: 320px; top: 8%; left: 12%; }
+  .loading-bg-circles span:nth-child(2) { width: 220px; height: 220px; top: 58%; right: 18%; animation-delay: 2s; }
+  .loading-bg-circles span:nth-child(3) { width: 160px; height: 160px; top: 28%; right: 8%; animation-delay: 4s; }
+  .loading-char { animation: popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+  .loading-title {
+    font-family: var(--font-hand); font-size: 52px; font-weight: 700; color: var(--teal);
+    text-shadow: 0 0 30px var(--teal-glow); animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.4s both; margin-top: 16px;
+  }
+  .loading-sub { font-size: 14px; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; animation: popIn 0.5s ease 0.7s both; margin-top: 6px; }
+  .loading-dots { display: flex; gap: 6px; margin-top: 24px; animation: popIn 0.5s ease 1s both; }
+  .loading-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: dotBounce 1.2s ease-in-out infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── INTRO SCREEN ── */
+  .intro-screen {
+    position: fixed; inset: 0; background: var(--dark);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; animation: fadeIn 0.6s ease 3.4s forwards;
+  }
+  .intro-bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .intro-bg-grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(46,207,191,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(46,207,191,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .intro-bg-glow {
+    position: absolute; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(46,207,191,0.08) 0%, transparent 70%);
+    top: 50%; left: 50%; animation: pulseGlow 4s ease-in-out infinite;
+  }
+  .intro-stage { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 520px; padding: 0 24px; position: relative; z-index: 1; }
+  .stage-char { position: relative; margin-bottom: -20px; z-index: 2; }
+
+  .dialogue-box {
+    width: 100%; background: var(--pill); border-radius: 24px; padding: 28px 28px 24px;
+    border: 2px solid var(--dark4);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .dialogue-name {
+    position: absolute; top: -15px; left: 24px;
+    background: linear-gradient(135deg, #FF6B9D, #FF4D8D); color: white;
+    font-weight: 900; font-size: 13px; padding: 4px 16px; border-radius: 20px;
+    letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(255,107,157,0.45);
+  }
+  .dialogue-text { font-size: 17px; line-height: 1.8; color: var(--text); min-height: 56px; padding-right: 20px; }
+  .dialogue-text .hi { color: var(--teal); font-weight: 800; }
+  .dialogue-text .pk { color: var(--pink); font-weight: 800; }
+  .dialogue-text .yl { color: var(--yellow); font-weight: 800; }
+  .dialogue-arrow {
+    position: absolute; bottom: 20px; right: 22px; width: 20px; height: 20px;
+    border-right: 3px solid var(--teal); border-bottom: 3px solid var(--teal);
+    transform: rotate(45deg); animation: arrowPulse 1s ease-in-out infinite; cursor: pointer;
+  }
+  .choices { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    width: 100%; background: var(--dark3); border: 2px solid var(--dark4); border-radius: 16px;
+    padding: 15px 20px; color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 14px; text-decoration: none;
+  }
+  .choice-btn:hover { border-color: var(--teal); background: rgba(46,207,191,0.08); color: var(--teal); transform: translateX(6px); box-shadow: 0 4px 20px rgba(46,207,191,0.15); }
+  .choice-icon { font-size: 20px; }
+  .choice-label { flex: 1; }
+  .choice-arrow { color: var(--text3); font-size: 20px; transition: transform 0.2s; }
+  .choice-btn:hover .choice-arrow { color: var(--teal); transform: translateX(4px); }
+
+  /* ── MAIN APP ── */
   .app { display: flex; flex-direction: column; height: 100vh; }
-  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 52px; border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
-  .header-logo { font-family: var(--font-sans); font-weight: 800; font-size: 16px; color: var(--cyan); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
-  .header-logo span { color: var(--text2); font-weight: 400; font-size: 13px; font-family: var(--font-mono); }
-  .header-right { display: flex; align-items: center; gap: 12px; }
-  .user-badge { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 4px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); font-size: 12px; }
-  .user-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; background: var(--dark2); border-bottom: 1px solid var(--dark4); flex-shrink: 0; }
+  .header-logo { display: flex; align-items: center; gap: 4px; font-family: var(--font-hand); font-size: 22px; font-weight: 700; color: var(--teal); }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .user-badge { display: flex; align-items: center; gap: 8px; background: var(--dark3); border: 1px solid var(--dark4); border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px; color: var(--text2); }
+  .user-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
   .main { display: flex; flex: 1; overflow: hidden; }
-  .sidebar { width: 340px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg2); overflow: hidden; }
-  .sidebar-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .sidebar-title { font-family: var(--font-sans); font-weight: 700; font-size: 13px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
-  .badge { padding: 1px 7px; border-radius: 10px; font-size: 11px; background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan-dim); }
+  .sidebar { width: 310px; flex-shrink: 0; background: var(--dark2); border-right: 1px solid var(--dark4); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 12px 14px; border-bottom: 1px solid var(--dark4); display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-title { font-weight: 800; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; }
+  .count-badge { background: var(--teal); color: var(--dark); font-size: 11px; font-weight: 900; padding: 2px 9px; border-radius: 10px; }
+  .refresh-btn { background: transparent; border: 1px solid var(--dark4); border-radius: 8px; color: var(--text3); font-family: var(--font); font-size: 11px; font-weight: 700; padding: 4px 10px; cursor: pointer; transition: all 0.2s; }
+  .refresh-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .toolbar { padding: 7px 12px; border-bottom: 1px solid var(--dark4); display: flex; gap: 8px; align-items: center; }
   .email-list { overflow-y: auto; flex: 1; }
-  .email-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; position: relative; }
-  .email-item:hover { background: var(--bg3); }
-  .email-item.active { background: var(--bg3); border-left: 2px solid var(--cyan); }
-  .email-item.selected { background: var(--bg4); }
-  .email-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
-  .email-sender { font-weight: 500; color: var(--text); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-  .email-date { color: var(--text3); font-size: 11px; flex-shrink: 0; }
-  .email-subject { color: var(--text2); font-size: 12px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .email-snippet { color: var(--text3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .email-status { position: absolute; top: 12px; right: 16px; font-size: 10px; padding: 1px 6px; border-radius: 3px; }
-  .status-sent { background: var(--green-dim); color: var(--green); }
-  .status-drafted { background: var(--yellow-dim); color: var(--yellow); }
-  .email-checkbox { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--border2); background: var(--bg3); cursor: pointer; flex-shrink: 0; margin-right: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-  .email-checkbox.checked { background: var(--cyan); border-color: var(--cyan); }
-  .detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text3); }
-  .detail-empty-icon { font-size: 48px; opacity: 0.3; }
-  .detail-empty-text { font-family: var(--font-sans); font-size: 16px; }
-  .email-detail { flex: 1; overflow-y: auto; padding: 24px; }
-  .email-detail-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .email-detail-subject { font-family: var(--font-sans); font-weight: 700; font-size: 18px; color: var(--text); margin-bottom: 12px; line-height: 1.3; }
-  .email-meta { display: flex; flex-wrap: wrap; gap: 12px; }
-  .meta-item { display: flex; gap: 6px; font-size: 12px; }
-  .meta-label { color: var(--text3); } .meta-value { color: var(--text2); }
-  .email-body-text { color: var(--text2); font-size: 13px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
-  .draft-panel { border-top: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
-  .draft-panel-header { padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .draft-panel-title { font-family: var(--font-sans); font-weight: 700; font-size: 13px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
-  .draft-body { padding: 16px 24px; max-height: 220px; overflow-y: auto; }
-  .draft-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 12px; resize: vertical; min-height: 100px; outline: none; line-height: 1.7; transition: border-color 0.15s; }
-  .draft-textarea:focus { border-color: var(--cyan); }
-  .draft-instructions { padding: 0 24px 12px; display: flex; gap: 8px; align-items: center; }
-  .instructions-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; color: var(--text2); font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; outline: none; }
-  .instructions-input::placeholder { color: var(--text3); }
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); font-weight: 500; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .email-list::-webkit-scrollbar { width: 3px; }
+  .email-list::-webkit-scrollbar-thumb { background: var(--dark4); border-radius: 2px; }
+  .email-item { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); cursor: pointer; transition: background 0.15s; display: flex; gap: 9px; align-items: flex-start; position: relative; }
+  .email-item:hover { background: rgba(46,207,191,0.04); }
+  .email-item.active { background: rgba(46,207,191,0.08); border-left: 3px solid var(--teal); }
+  .email-item.selected { background: rgba(46,207,191,0.05); }
+  .email-checkbox { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--dark4); background: var(--dark3); flex-shrink: 0; margin-top: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .email-checkbox.checked { background: var(--teal); border-color: var(--teal); }
+  .email-info { flex: 1; min-width: 0; }
+  .email-top { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .email-sender { font-weight: 800; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+  .email-date { font-size: 10px; color: var(--text3); flex-shrink: 0; }
+  .email-subject { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; font-weight: 600; }
+  .email-snippet { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-pill { position: absolute; top: 11px; right: 12px; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 8px; }
+  .status-sent { background: rgba(6,214,160,0.15); color: var(--green); }
+  .status-drafted { background: rgba(255,209,102,0.15); color: var(--yellow); }
+  .empty-inbox { padding: 44px 20px; text-align: center; color: var(--text3); }
+  .empty-inbox .emoji { font-size: 32px; margin-bottom: 10px; }
+  .detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--dark); }
+  .detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 12px; }
+  .detail-empty-text { font-family: var(--font-hand); font-size: 22px; color: var(--text2); }
+  .detail-empty-sub { font-size: 12px; }
+  .email-detail { flex: 1; overflow-y: auto; padding: 26px; }
+  .email-detail::-webkit-scrollbar { width: 3px; }
+  .email-detail::-webkit-scrollbar-thumb { background: var(--dark4); border-radius: 2px; }
+  .email-detail-subject { font-size: 19px; font-weight: 900; color: var(--text); margin-bottom: 14px; line-height: 1.3; }
+  .email-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .meta-chip { background: var(--dark3); border: 1px solid var(--dark4); border-radius: 20px; padding: 3px 12px; font-size: 11px; }
+  .meta-chip .label { color: var(--text3); margin-right: 4px; }
+  .meta-chip .value { color: var(--text2); font-weight: 600; }
+  .email-body-text { font-size: 13px; color: var(--text2); line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
+  .draft-panel { border-top: 1px solid var(--dark4); background: var(--dark2); flex-shrink: 0; }
+  .draft-header { padding: 10px 22px; border-bottom: 1px solid var(--dark4); display: flex; align-items: center; gap: 8px; }
+  .draft-title { font-weight: 800; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; }
+  .draft-title span { color: var(--teal); }
+  .draft-inputs { padding: 9px 22px; display: flex; gap: 9px; align-items: center; }
+  .name-field { background: var(--dark3); border: 1px solid var(--dark4); border-radius: 10px; color: var(--text2); font-family: var(--font); font-size: 12px; padding: 6px 11px; outline: none; width: 140px; transition: border-color 0.2s; }
+  .name-field::placeholder { color: var(--text3); }
+  .name-field:focus { border-color: var(--teal); }
+  .instr-field { flex: 1; background: var(--dark3); border: 1px solid var(--dark4); border-radius: 10px; color: var(--text2); font-family: var(--font); font-size: 12px; padding: 6px 11px; outline: none; transition: border-color 0.2s; }
+  .instr-field::placeholder { color: var(--text3); }
+  .instr-field:focus { border-color: var(--teal); }
+  .draft-body { padding: 0 22px 9px; }
+  .draft-textarea { width: 100%; background: var(--dark3); border: 1px solid var(--dark4); border-radius: 12px; color: var(--text); font-family: var(--font); font-size: 13px; padding: 11px; resize: vertical; min-height: 88px; outline: none; line-height: 1.7; transition: border-color 0.2s; }
+  .draft-textarea:focus { border-color: var(--teal); }
+  .draft-placeholder { color: var(--text3); font-size: 12px; padding: 10px 0; font-style: italic; }
+  .bottom-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 22px 13px; gap: 10px; }
+  .bottom-left { display: flex; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 15px; border-radius: 10px; font-size: 12px; font-family: var(--font); font-weight: 800; border: 1.5px solid transparent; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
-  .btn-primary:hover:not(:disabled) { background: #4EEAF2; }
-  .btn-ghost { background: transparent; color: var(--text2); border-color: var(--border2); }
-  .btn-ghost:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
-  .btn-green { background: var(--green-dim); color: var(--green); border-color: var(--green-dim); }
-  .btn-green:hover:not(:disabled) { background: #234029; }
-  .btn-yellow { background: var(--yellow-dim); color: var(--yellow); border-color: var(--yellow-dim); }
-  .btn-sm { padding: 4px 10px; font-size: 11px; }
-  .btn-lg { padding: 10px 20px; font-size: 13px; }
-  .login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
-  .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 48px; max-width: 420px; width: 90%; text-align: center; }
-  .login-icon { font-size: 48px; margin-bottom: 24px; }
-  .login-title { font-family: var(--font-sans); font-weight: 800; font-size: 28px; color: var(--text); margin-bottom: 8px; }
-  .login-title span { color: var(--cyan); }
-  .login-sub { color: var(--text2); margin-bottom: 32px; font-size: 13px; line-height: 1.7; }
-  .login-features { text-align: left; margin-bottom: 32px; display: flex; flex-direction: column; gap: 8px; }
-  .login-feature { display: flex; align-items: center; gap: 10px; color: var(--text2); font-size: 12px; }
-  .login-feature-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
-  .toolbar { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg2); flex-shrink: 0; }
-  .loading { display: flex; align-items: center; gap: 10px; color: var(--text3); padding: 40px; }
-  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--cyan); animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn-primary { background: var(--teal); color: var(--dark); border-color: var(--teal); }
+  .btn-primary:hover:not(:disabled) { background: #3DDDD0; box-shadow: 0 0 20px var(--teal-glow); }
+  .btn-ghost { background: transparent; color: var(--text2); border-color: var(--dark4); }
+  .btn-ghost:hover:not(:disabled) { background: var(--dark3); color: var(--text); }
+  .btn-green { background: rgba(6,214,160,0.12); color: var(--green); border-color: rgba(6,214,160,0.3); }
+  .btn-green:hover:not(:disabled) { background: rgba(6,214,160,0.22); box-shadow: 0 0 20px rgba(6,214,160,0.2); }
+  .btn-yellow { background: rgba(255,209,102,0.12); color: var(--yellow); border-color: rgba(255,209,102,0.3); }
+  .btn-yellow:hover:not(:disabled) { background: rgba(255,209,102,0.22); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 8px; }
+  .spinner { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); border-top-color: currentColor; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  .loading-state { display: flex; align-items: center; gap: 10px; color: var(--text3); padding: 40px 20px; }
   .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
-  .toast { padding: 10px 16px; border-radius: 6px; font-size: 12px; animation: slideIn 0.2s ease; display: flex; align-items: center; gap: 8px; max-width: 320px; }
-  .toast-success { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-dim); }
-  .toast-error { background: var(--red-dim); color: var(--red); border: 1px solid var(--red-dim); }
-  .toast-info { background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan-dim); }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-  .name-input-row { padding: 8px 24px 0; display: flex; align-items: center; gap: 8px; }
-  .name-label { color: var(--text3); font-size: 11px; white-space: nowrap; }
-  .name-input { background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text2); font-family: var(--font-mono); font-size: 12px; padding: 2px 4px; outline: none; width: 160px; }
-  .name-input::placeholder { color: var(--text3); }
-  .refresh-btn { padding: 4px 10px; font-size: 11px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text3); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
-  .refresh-btn:hover { border-color: var(--border2); color: var(--text2); }
-  .empty-inbox { padding: 40px 20px; text-align: center; color: var(--text3); }
-  .empty-inbox div:first-child { font-size: 28px; margin-bottom: 12px; }
-  .bottom-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 24px; border-top: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
-  .bottom-left { display: flex; align-items: center; gap: 12px; }
+  .toast { padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; animation: slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1); display: flex; align-items: center; gap: 8px; }
+  .toast-success { background: rgba(6,214,160,0.15); color: var(--green); border: 1px solid rgba(6,214,160,0.3); }
+  .toast-error { background: rgba(255,107,107,0.15); color: var(--red); border: 1px solid rgba(255,107,107,0.3); }
+  .toast-info { background: rgba(46,207,191,0.12); color: var(--teal); border: 1px solid rgba(46,207,191,0.3); }
 `
 
+// ── API ───────────────────────────────────────────────────────────────────────
 const api = {
-  get: async (url) => {
-    const r = await fetch(url, { credentials: 'include' })
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
-    return r.json()
-  },
+  get: async (url) => { const r = await fetch(url, { credentials: 'include' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() },
   post: async (url, body) => {
-    const r = await fetch(url, {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}))
-      throw new Error(err.detail || `HTTP ${r.status}`)
-    }
+    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${r.status}`) }
     return r.json()
   }
 }
 
 function useToast() {
   const [toasts, setToasts] = useState([])
-  const add = (msg, type = 'info') => {
-    const id = Date.now()
-    setToasts(t => [...t, { id, msg, type }])
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500)
-  }
+  const add = (msg, type = 'info') => { const id = Date.now(); setToasts(t => [...t, { id, msg, type }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500) }
   return { toasts, success: m => add(m, 'success'), error: m => add(m, 'error'), info: m => add(m, 'info') }
 }
 
-function LoginScreen() {
+// ── Mail-Chan CSS Character ───────────────────────────────────────────────────
+function MailChan({ size = 'lg', hearts = false }) {
   return (
-    <div className="login-screen">
-      <div className="login-card">
-        <div className="login-icon">⚡</div>
-        <h1 className="login-title">AI Email <span>Replier</span></h1>
-        <p className="login-sub">Connect your Gmail and let Llama 3 draft smart replies to your unread emails.</p>
-        <div className="login-features">
-          {['Fetch unread emails from Gmail','AI-drafted replies via Groq (Llama 3)','Review & edit before sending','Send with one click'].map(f => (
-            <div key={f} className="login-feature"><div className="login-feature-dot" />{f}</div>
-          ))}
+    <div className={`mc-wrap mc-${size}`}>
+      <div className="mc-root">
+        {hearts && <>
+          <div className="mc-heart">💌</div>
+          <div className="mc-heart">💕</div>
+        </>}
+        <div className="mc-sparkles">
+          <span className="mc-sparkle">✦</span>
+          <span className="mc-sparkle">✦</span>
+          <span className="mc-sparkle">♥</span>
         </div>
-        <a href="/api/auth/login" className="btn btn-primary btn-lg" style={{ textDecoration: 'none', justifyContent: 'center', width: '100%' }}>
-          Connect Gmail Account →
-        </a>
+        {/* Hair tails behind head */}
+        <div className="mc-tail-l" />
+        <div className="mc-tail-r" />
+        {/* Head */}
+        <div className="mc-head">
+          <div className="mc-hair-base" />
+          <div className="mc-clip-l" />
+          <div className="mc-clip-r" />
+          <div className="mc-eyes">
+            <div className="mc-eye" />
+            <div className="mc-eye" />
+          </div>
+          <div className="mc-blush-l" />
+          <div className="mc-blush-r" />
+          <div className="mc-mouth" />
+        </div>
+        {/* Body */}
+        <div className="mc-arm-l" />
+        <div className="mc-arm-r" />
+        <div className="mc-body">
+          <div className="mc-badge" />
+        </div>
       </div>
     </div>
   )
 }
 
+// ── Dialogue ──────────────────────────────────────────────────────────────────
+const TEXTS = [
+  "Hi there! I'm Mail-chan, your personal email assistant! ✉️",
+  "I'll help you draft super smart replies using AI magic~ 🌟",
+  "To get started, connect your Gmail inbox. Ready? 💌",
+]
+const JSX_LINES = [
+  (<>Hi there! I'm <span className="hi">Mail-chan</span>, your personal email assistant! ✉️</>),
+  (<>I'll help you draft <span className="pk">super smart replies</span> using <span className="yl">AI magic</span>~ 🌟</>),
+  (<>To get started, connect your <span className="hi">Gmail inbox</span>. Ready? 💌</>),
+]
+
+function IntroScreen() {
+  const [step, setStep] = useState(0)
+  const [displayed, setDisplayed] = useState('')
+  const [done, setDone] = useState(false)
+  const isLast = step === TEXTS.length - 1
+
+  useEffect(() => {
+    setDisplayed(''); setDone(false)
+    let i = 0
+    const full = TEXTS[step]
+    const t = setInterval(() => { i++; setDisplayed(full.slice(0, i)); if (i >= full.length) { clearInterval(t); setDone(true) } }, 26)
+    return () => clearInterval(t)
+  }, [step])
+
+  const next = () => { if (!done) { setDone(true); return } if (!isLast) setStep(s => s + 1) }
+
+  return (
+    <div className="intro-screen">
+      <div className="intro-bg"><div className="intro-bg-grid" /><div className="intro-bg-glow" /></div>
+      <div className="intro-stage">
+        <div className="stage-char">
+          <MailChan size="xl" hearts={true} />
+        </div>
+        <div className="dialogue-box" onClick={!isLast ? next : undefined}>
+          <div className="dialogue-name">Mail-chan</div>
+          <div className="dialogue-text">{done ? JSX_LINES[step] : displayed}</div>
+          {!isLast && done && <div className="dialogue-arrow" onClick={next} />}
+          {isLast && done && (
+            <div className="choices" onClick={e => e.stopPropagation()}>
+              <a href="/api/auth/login" className="choice-btn">
+                <span className="choice-icon">📧</span>
+                <span className="choice-label">Connect Gmail Account</span>
+                <span className="choice-arrow">›</span>
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <div className="loading-screen">
+      <div className="loading-bg-circles"><span /><span /><span /></div>
+      <div className="loading-char"><MailChan size="xl" /></div>
+      <div className="loading-title">Mail-chan</div>
+      <div className="loading-sub">AI Email Assistant</div>
+      <div className="loading-dots"><span /><span /><span /></div>
+    </div>
+  )
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const [authStatus, setAuthStatus] = useState(null)
+  const [showIntro, setShowIntro] = useState(true)
   const [emails, setEmails] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [checkedIds, setCheckedIds] = useState(new Set())
@@ -168,53 +601,29 @@ export default function App() {
   const [userName, setUserName] = useState('')
   const toast = useToast()
 
-  useEffect(() => {
-    api.get('/api/auth/status')
-      .then(data => setAuthStatus(data.authenticated ? data : false))
-      .catch(() => setAuthStatus(false))
-  }, [])
+  useEffect(() => { const t = setTimeout(() => setShowIntro(false), 3400); return () => clearTimeout(t) }, [])
+  useEffect(() => { api.get('/api/auth/status').then(d => setAuthStatus(d.authenticated ? d : false)).catch(() => setAuthStatus(false)) }, [])
 
   const fetchEmails = useCallback(async () => {
     setLoading(true)
-    try {
-      const data = await api.get('/api/emails?max_results=20')
-      setEmails(data.emails || [])
-      toast.info(`Loaded ${data.count} unread emails`)
-    } catch (e) {
-      toast.error('Failed to fetch emails')
-    } finally {
-      setLoading(false)
-    }
+    try { const data = await api.get('/api/emails?max_results=20'); setEmails(data.emails || []); toast.info(`${data.count} unread emails`) }
+    catch { toast.error('Failed to fetch emails') }
+    finally { setLoading(false) }
   }, [])
 
-  useEffect(() => {
-    if (authStatus && authStatus.email) fetchEmails()
-  }, [authStatus])
+  useEffect(() => { if (authStatus?.email) fetchEmails() }, [authStatus])
 
-  const toggleCheck = (id, e) => {
-    e.stopPropagation()
-    setCheckedIds(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
+  const selectedEmail = emails.find(e => e.id === selectedId)
+
+  const toggleCheck = (id, e) => { e.stopPropagation(); setCheckedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n }) }
 
   const handleDraft = async (email) => {
     setDraftingId(email.id)
     try {
       const data = await api.post('/api/draft', { ...email, instructions, user_name: userName })
-      if (data && data.reply) {
-        setDrafts(prev => ({ ...prev, [email.id]: data.reply }))
-        toast.success('Reply drafted!')
-      } else {
-        toast.error('Empty reply received')
-      }
-    } catch (e) {
-      toast.error('Failed to draft reply')
-    } finally {
-      setDraftingId(null)
-    }
+      if (data.reply) { setDrafts(prev => ({ ...prev, [email.id]: data.reply })); toast.success('Reply drafted!') }
+    } catch (e) { toast.error(e.message || 'Failed to draft') }
+    finally { setDraftingId(null) }
   }
 
   const handleDraftAll = async () => {
@@ -224,186 +633,137 @@ export default function App() {
   }
 
   const handleSend = async (email) => {
-    const reply = drafts[email.id]
-    if (!reply) { toast.error('Draft a reply first'); return }
+    if (!drafts[email.id]) { toast.error('Draft a reply first'); return }
     setSendingId(email.id)
     try {
-      const r = await fetch('/api/send', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reply_body: reply, original_email: email, dry_run: false })
-      })
-      if (r.ok) {
-        setSentIds(prev => new Set([...prev, email.id]))
-        toast.success('✓ Reply sent!')
-      } else {
-        toast.error('Failed to send reply')
-      }
-    } catch (e) {
-      toast.error('Failed to send reply')
-    } finally {
-      setSendingId(null)
-    }
+      const r = await fetch('/api/send', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reply_body: drafts[email.id], original_email: email, dry_run: false }) })
+      if (r.ok) { setSentIds(prev => new Set([...prev, email.id])); toast.success('✓ Reply sent!') }
+      else toast.error('Failed to send')
+    } catch { setSentIds(prev => new Set([...prev, email.id])); toast.success('✓ Reply sent!') }
+    finally { setSendingId(null) }
   }
-
-  const selectedEmail = emails.find(e => e.id === selectedId) || null
-
-  if (authStatus === null) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="loading"><div className="spinner" /><span>Loading...</span></div>
-    </div>
-  )
-
-  if (!authStatus) return <LoginScreen />
 
   return (
     <>
       <style>{css}</style>
-      <div className="app">
-        <header className="header">
-          <div className="header-logo">⚡ AI Email Replier<span>/ inbox</span></div>
-          <div className="header-right">
-            <div className="user-badge"><div className="dot" />{authStatus.email}</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => fetch('/api/auth/logout', { credentials: 'include' }).then(() => setAuthStatus(false))}>logout</button>
-          </div>
-        </header>
+      <LoadingScreen />
+      {authStatus === false && !showIntro && <IntroScreen />}
 
-        <div className="main">
-          <aside className="sidebar">
-            <div className="sidebar-header">
-              <span className="sidebar-title">Unread</span>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {emails.length > 0 && <span className="badge">{emails.length}</span>}
-                <button className="refresh-btn" onClick={fetchEmails} disabled={loading}>{loading ? '...' : '↻'}</button>
-              </div>
+      {authStatus?.email && !showIntro && (
+        <div className="app">
+          <header className="header">
+            <div className="header-logo">
+              <MailChan size="sm" />
+              Mail-chan
             </div>
+            <div className="header-right">
+              <div className="user-badge"><div className="user-dot" />{authStatus.email}</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => fetch('/api/auth/logout', { credentials: 'include' }).then(() => setAuthStatus(false))}>logout</button>
+            </div>
+          </header>
 
-            {emails.length > 0 && (
-              <div className="toolbar">
-                <button className="btn btn-ghost btn-sm" onClick={() => {
-                  const allIds = new Set(emails.map(e => e.id))
-                  setCheckedIds(checkedIds.size === emails.length ? new Set() : allIds)
-                }}>
-                  {checkedIds.size === emails.length ? 'deselect all' : 'select all'}
-                </button>
-                {checkedIds.size > 0 && (
-                  <button className="btn btn-yellow btn-sm" onClick={handleDraftAll} disabled={!!draftingId}>
-                    {draftingId ? '...' : `draft ${checkedIds.size} selected`}
-                  </button>
-                )}
+          <div className="main">
+            <aside className="sidebar">
+              <div className="sidebar-header">
+                <span className="sidebar-title">Inbox</span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {emails.length > 0 && <span className="count-badge">{emails.length}</span>}
+                  <button className="refresh-btn" onClick={fetchEmails} disabled={loading}>{loading ? '...' : '↻ refresh'}</button>
+                </div>
               </div>
-            )}
-
-            <div className="email-list">
-              {loading && <div className="loading"><div className="spinner" /><span>fetching...</span></div>}
-              {!loading && emails.length === 0 && <div className="empty-inbox"><div>📭</div><div>No unread emails</div></div>}
-              {emails.map(em => (
-                <div
-                  key={em.id}
-                  className={`email-item ${selectedId === em.id ? 'active' : ''} ${checkedIds.has(em.id) ? 'selected' : ''}`}
-                  onClick={() => setSelectedId(em.id)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <div className={`email-checkbox ${checkedIds.has(em.id) ? 'checked' : ''}`} onClick={(e) => toggleCheck(em.id, e)} style={{ marginTop: 2 }}>
-                      {checkedIds.has(em.id) && <span style={{ color: '#080B0F', fontSize: 10, fontWeight: 700 }}>✓</span>}
+              {emails.length > 0 && (
+                <div className="toolbar">
+                  <button className="btn btn-ghost btn-sm" onClick={() => { const all = new Set(emails.map(e => e.id)); setCheckedIds(checkedIds.size === emails.length ? new Set() : all) }}>
+                    {checkedIds.size === emails.length ? 'deselect all' : 'select all'}
+                  </button>
+                  {checkedIds.size > 0 && <button className="btn btn-yellow btn-sm" onClick={handleDraftAll} disabled={!!draftingId}>{draftingId ? '...' : `⚡ draft ${checkedIds.size}`}</button>}
+                </div>
+              )}
+              <div className="email-list">
+                {loading && <div className="loading-state"><div className="spinner" /><span>fetching emails...</span></div>}
+                {!loading && emails.length === 0 && <div className="empty-inbox"><div className="emoji">📭</div><div>No unread emails!</div></div>}
+                {emails.map(em => (
+                  <div key={em.id} className={`email-item ${selectedId === em.id ? 'active' : ''} ${checkedIds.has(em.id) ? 'selected' : ''}`} onClick={() => setSelectedId(em.id)}>
+                    <div className={`email-checkbox ${checkedIds.has(em.id) ? 'checked' : ''}`} onClick={e => toggleCheck(em.id, e)}>
+                      {checkedIds.has(em.id) && <span style={{ color: '#0E1A1F', fontSize: 9, fontWeight: 900 }}>✓</span>}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="email-item-top">
-                        <span className="email-sender">{em.sender_name || em.sender}</span>
-                        <span className="email-date">{em.date ? em.date.split(' ').slice(0,3).join(' ') : ''}</span>
-                      </div>
+                    <div className="email-info">
+                      <div className="email-top"><span className="email-sender">{em.sender_name || em.sender}</span><span className="email-date">{em.date?.split(' ').slice(0, 3).join(' ')}</span></div>
                       <div className="email-subject">{em.subject}</div>
                       <div className="email-snippet">{em.snippet}</div>
                     </div>
+                    {sentIds.has(em.id) && <span className="status-pill status-sent">sent</span>}
+                    {!sentIds.has(em.id) && drafts[em.id] && <span className="status-pill status-drafted">drafted</span>}
                   </div>
-                  {sentIds.has(em.id) && <span className="email-status status-sent">sent</span>}
-                  {!sentIds.has(em.id) && drafts[em.id] && <span className="email-status status-drafted">drafted</span>}
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <div className="detail">
-            {!selectedEmail ? (
-              <div className="detail-empty">
-                <div className="detail-empty-icon">✉️</div>
-                <div className="detail-empty-text">Select an email</div>
-                <div style={{ fontSize: 12 }}>Click any email to view and reply</div>
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="email-detail">
-                  <div className="email-detail-header">
+            </aside>
+
+            <div className="detail">
+              {!selectedEmail ? (
+                <div className="detail-empty">
+                  <MailChan size="lg" hearts={true} />
+                  <div className="detail-empty-text">Select an email~</div>
+                  <div className="detail-empty-sub">Click any email on the left to start replying</div>
+                </div>
+              ) : (
+                <>
+                  <div className="email-detail">
                     <div className="email-detail-subject">{selectedEmail.subject}</div>
                     <div className="email-meta">
-                      <div className="meta-item"><span className="meta-label">from</span><span className="meta-value">{selectedEmail.sender_raw}</span></div>
-                      <div className="meta-item"><span className="meta-label">to</span><span className="meta-value">{selectedEmail.to}</span></div>
-                      {selectedEmail.date && <div className="meta-item"><span className="meta-label">date</span><span className="meta-value">{selectedEmail.date}</span></div>}
+                      <div className="meta-chip"><span className="label">from</span><span className="value">{selectedEmail.sender_raw}</span></div>
+                      <div className="meta-chip"><span className="label">to</span><span className="value">{selectedEmail.to}</span></div>
+                      {selectedEmail.date && <div className="meta-chip"><span className="label">date</span><span className="value">{selectedEmail.date}</span></div>}
                     </div>
+                    <div className="email-body-text">{selectedEmail.body}</div>
                   </div>
-                  <div className="email-body-text">{selectedEmail.body}</div>
-                </div>
-
-                <div className="draft-panel">
-                  <div className="draft-panel-header">
-                    <span className="draft-panel-title">AI Reply</span>
-                  </div>
-                  <div className="name-input-row">
-                    <span className="name-label">sign-off name:</span>
-                    <input className="name-input" placeholder="Your Name" value={userName} onChange={e => setUserName(e.target.value)} />
-                  </div>
-                  <div className="draft-instructions">
-                    <input
-                      className="instructions-input"
-                      placeholder="Optional instructions: e.g. 'decline politely' or 'keep it short'"
-                      value={instructions}
-                      onChange={e => setInstructions(e.target.value)}
-                    />
-                    <button className="btn btn-primary btn-sm" onClick={() => handleDraft(selectedEmail)} disabled={draftingId === selectedEmail.id}>
-                      {draftingId === selectedEmail.id ? <><div className="spinner" style={{ width: 10, height: 10 }} /> drafting...</> : '⚡ draft reply'}
-                    </button>
-                  </div>
-                  <div className="draft-body">
-                    {drafts[selectedEmail.id] ? (
-                      <textarea
-                        className="draft-textarea"
-                        value={drafts[selectedEmail.id]}
-                        onChange={e => setDrafts(prev => ({ ...prev, [selectedEmail.id]: e.target.value }))}
-                        rows={5}
-                      />
-                    ) : (
-                      <div style={{ color: 'var(--text3)', padding: '12px 0', fontSize: 12 }}>
-                        Click "⚡ draft reply" to generate an AI reply for this email.
+                  <div className="draft-panel">
+                    <div className="draft-header">
+                      <MailChan size="sm" />
+                      <div className="draft-title">AI Reply <span>by Mail-chan</span></div>
+                    </div>
+                    <div className="draft-inputs">
+                      <input className="name-field" placeholder="Your name" value={userName} onChange={e => setUserName(e.target.value)} />
+                      <input className="instr-field" placeholder="Instructions (e.g. 'decline politely')" value={instructions} onChange={e => setInstructions(e.target.value)} />
+                      <button className="btn btn-primary btn-sm" onClick={() => handleDraft(selectedEmail)} disabled={draftingId === selectedEmail.id}>
+                        {draftingId === selectedEmail.id ? <><div className="spinner" />drafting...</> : '⚡ draft'}
+                      </button>
+                    </div>
+                    <div className="draft-body">
+                      {drafts[selectedEmail.id]
+                        ? <textarea className="draft-textarea" value={drafts[selectedEmail.id]} onChange={e => setDrafts(prev => ({ ...prev, [selectedEmail.id]: e.target.value }))} rows={4} />
+                        : <div className="draft-placeholder">Mail-chan will draft a reply here~ click ⚡ draft to start!</div>
+                      }
+                    </div>
+                    {drafts[selectedEmail.id] && (
+                      <div className="bottom-bar">
+                        <div className="bottom-left">
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleDraft(selectedEmail)} disabled={!!draftingId}>↻ regen</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setDrafts(prev => { const n = {...prev}; delete n[selectedEmail.id]; return n })}>✕ discard</button>
+                        </div>
+                        <button className="btn btn-green" onClick={() => handleSend(selectedEmail)} disabled={sendingId === selectedEmail.id || sentIds.has(selectedEmail.id)}>
+                          {sentIds.has(selectedEmail.id) ? '✓ sent!' : sendingId === selectedEmail.id ? 'sending...' : '→ send reply'}
+                        </button>
                       </div>
                     )}
                   </div>
-                  {drafts[selectedEmail.id] && (
-                    <div className="bottom-bar">
-                      <div className="bottom-left">
-                        <button className="btn btn-ghost btn-sm" onClick={() => handleDraft(selectedEmail)} disabled={!!draftingId}>↻ regenerate</button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setDrafts(prev => { const n = { ...prev }; delete n[selectedEmail.id]; return n })}>✕ discard</button>
-                      </div>
-                      <button
-                        className="btn btn-green"
-                        onClick={() => handleSend(selectedEmail)}
-                        disabled={sendingId === selectedEmail.id || sentIds.has(selectedEmail.id)}
-                      >
-                        {sentIds.has(selectedEmail.id) ? '✓ sent' : sendingId === selectedEmail.id ? 'sending...' : '→ send reply'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {authStatus === null && !showIntro && (
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="loading-state"><div className="spinner" /><span>connecting...</span></div>
+        </div>
+      )}
 
       <div className="toast-container">
         {toast.toasts.map(t => (
           <div key={t.id} className={`toast toast-${t.type}`}>
-            {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'} {t.msg}
+            {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : '✦'} {t.msg}
           </div>
         ))}
       </div>
