@@ -1,4 +1,51 @@
 import base64
+import re
+from html.parser import HTMLParser
+
+
+class HTMLStripper(HTMLParser):
+    """Strips HTML tags and decodes entities to plain text."""
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.fed = []
+        self.skip_tags = {'style', 'script', 'head'}
+        self._skip = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() in self.skip_tags:
+            self._skip = True
+        if tag.lower() in ('br', 'p', 'div', 'tr', 'li'):
+            self.fed.append('\n')
+
+    def handle_endtag(self, tag):
+        if tag.lower() in self.skip_tags:
+            self._skip = False
+        if tag.lower() in ('p', 'div', 'tr', 'li'):
+            self.fed.append('\n')
+
+    def handle_data(self, d):
+        if not self._skip:
+            self.fed.append(d)
+
+    def get_text(self):
+        text = ''.join(self.fed)
+        # Collapse multiple blank lines into max 2
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip()
+
+
+def strip_html(html_content: str) -> str:
+    """Convert HTML email body to readable plain text."""
+    try:
+        stripper = HTMLStripper()
+        stripper.feed(html_content)
+        return stripper.get_text()
+    except Exception:
+        # Fallback: regex strip
+        text = re.sub(r'<[^>]+>', ' ', html_content)
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
 
 
 def get_unread_emails(service, max_results=20):
@@ -68,19 +115,40 @@ def parse_sender(sender_raw):
     return name, email_addr
 
 
+def decode_part(data: str) -> str:
+    return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace").strip()
+
+
 def extract_body(payload):
-    if payload.get("body", {}).get("data"):
-        raw = payload["body"]["data"]
-        return base64.urlsafe_b64decode(raw + "==").decode("utf-8", errors="replace").strip()
+    mime_type = payload.get("mimeType", "")
+
+    # Direct body data
+    body_data = payload.get("body", {}).get("data", "")
+    if body_data:
+        content = decode_part(body_data)
+        if "html" in mime_type:
+            return strip_html(content)
+        return content
 
     parts = payload.get("parts", [])
+
+    # Prefer plain text first
     for part in parts:
-        mime_type = part.get("mimeType", "")
-        if mime_type == "text/plain":
+        if part.get("mimeType") == "text/plain":
             data = part.get("body", {}).get("data", "")
             if data:
-                return base64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace").strip()
-        elif mime_type.startswith("multipart/"):
+                return decode_part(data)
+
+    # Fall back to HTML (strip it)
+    for part in parts:
+        if part.get("mimeType") == "text/html":
+            data = part.get("body", {}).get("data", "")
+            if data:
+                return strip_html(decode_part(data))
+
+    # Recurse into multipart
+    for part in parts:
+        if part.get("mimeType", "").startswith("multipart/"):
             nested = extract_body(part)
             if nested:
                 return nested
