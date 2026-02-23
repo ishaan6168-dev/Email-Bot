@@ -9,19 +9,19 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 LABELS = ["Work", "Casual", "Advertisement", "Newsletter", "Finance", "Social", "Spam"]
 
-# Cache label IDs so we don't call Gmail API repeatedly
+# Cache keyed by USER EMAIL so different accounts never share label IDs
+# Structure: { "user@gmail.com": { "work": "Label_123", ... } }
 _label_id_cache = {}
 
-# !! IMPORTANT: Only colors from Gmail's official allowed palette work !!
-# Full palette: https://developers.google.com/gmail/api/reference/rest/v1/users.labels
+# Gmail's official allowed color palette
 LABEL_COLORS = {
-    "Work":          {"backgroundColor": "#1c4587", "textColor": "#ffffff"},  # dark blue
-    "Casual":        {"backgroundColor": "#16a766", "textColor": "#ffffff"},  # green
-    "Advertisement": {"backgroundColor": "#8e63ce", "textColor": "#ffffff"},  # purple
-    "Newsletter":    {"backgroundColor": "#eaa041", "textColor": "#ffffff"},  # orange
-    "Finance":       {"backgroundColor": "#cc3a21", "textColor": "#ffffff"},  # red
-    "Social":        {"backgroundColor": "#2da2bb", "textColor": "#ffffff"},  # teal
-    "Spam":          {"backgroundColor": "#666666", "textColor": "#ffffff"},  # grey
+    "Work":          {"backgroundColor": "#1c4587", "textColor": "#ffffff"},
+    "Casual":        {"backgroundColor": "#16a766", "textColor": "#ffffff"},
+    "Advertisement": {"backgroundColor": "#8e63ce", "textColor": "#ffffff"},
+    "Newsletter":    {"backgroundColor": "#eaa041", "textColor": "#ffffff"},
+    "Finance":       {"backgroundColor": "#cc3a21", "textColor": "#ffffff"},
+    "Social":        {"backgroundColor": "#2da2bb", "textColor": "#ffffff"},
+    "Spam":          {"backgroundColor": "#666666", "textColor": "#ffffff"},
 }
 
 SYSTEM_PROMPT = """You are an email classifier. Given an email's subject and body,
@@ -70,30 +70,45 @@ Classify this email:"""
         return "Casual"
 
 
-def get_or_create_label(service, label_name: str) -> str | None:
+def get_user_email(service) -> str:
+    """Get the authenticated user's email address."""
+    try:
+        profile = service.users().getProfile(userId="me").execute()
+        return profile.get("emailAddress", "unknown")
+    except Exception:
+        return "unknown"
+
+
+def get_or_create_label(service, label_name: str, user_email: str) -> str | None:
     """
     Gets existing Gmail label ID or creates it.
-    Uses in-memory cache to avoid repeated API calls.
+    Cache is keyed by user_email to prevent cross-account contamination.
     """
+    # Per-user cache
+    if user_email not in _label_id_cache:
+        _label_id_cache[user_email] = {}
+
+    user_cache = _label_id_cache[user_email]
     cache_key = label_name.lower()
-    if cache_key in _label_id_cache:
-        return _label_id_cache[cache_key]
+
+    if cache_key in user_cache:
+        return user_cache[cache_key]
 
     full_name = f"Mail-chan/{label_name}"
 
     try:
-        # Fetch all existing labels
+        # Fetch all existing labels for this user
         response = service.users().labels().list(userId="me").execute()
         existing_labels = response.get("labels", [])
 
         # Check if label already exists
         for lbl in existing_labels:
             if lbl.get("name", "").lower() == full_name.lower():
-                _label_id_cache[cache_key] = lbl["id"]
-                print(f"Found existing label: {full_name} → {lbl['id']}")
+                user_cache[cache_key] = lbl["id"]
+                print(f"[{user_email}] Found existing label: {full_name} → {lbl['id']}")
                 return lbl["id"]
 
-        # Create the label with allowed Gmail color
+        # Create the label
         body = {
             "name": full_name,
             "labelListVisibility": "labelShow",
@@ -101,16 +116,16 @@ def get_or_create_label(service, label_name: str) -> str | None:
             "color": LABEL_COLORS[label_name]
         }
 
-        print(f"Creating label: {full_name}")
+        print(f"[{user_email}] Creating label: {full_name}")
         created = service.users().labels().create(userId="me", body=body).execute()
         label_id = created["id"]
-        _label_id_cache[cache_key] = label_id
-        print(f"Created label: {full_name} → {label_id}")
+        user_cache[cache_key] = label_id
+        print(f"[{user_email}] Created label: {full_name} → {label_id}")
         return label_id
 
     except Exception as e:
-        print(f"Label error for '{label_name}': {type(e).__name__}: {e}")
-        # Try creating without color as last resort
+        print(f"[{user_email}] Label error for '{label_name}': {type(e).__name__}: {e}")
+        # Fallback: try without color
         try:
             body = {
                 "name": full_name,
@@ -119,18 +134,17 @@ def get_or_create_label(service, label_name: str) -> str | None:
             }
             created = service.users().labels().create(userId="me", body=body).execute()
             label_id = created["id"]
-            _label_id_cache[cache_key] = label_id
-            print(f"Created label without color: {full_name} → {label_id}")
+            user_cache[cache_key] = label_id
+            print(f"[{user_email}] Created label without color: {full_name} → {label_id}")
             return label_id
         except Exception as e2:
-            print(f"Label creation totally failed for '{label_name}': {e2}")
+            print(f"[{user_email}] Label creation totally failed for '{label_name}': {e2}")
             return None
 
 
-def apply_label_and_archive(service, message_id: str, label_id: str) -> bool:
+def apply_label_and_archive(service, message_id: str, label_id: str, user_email: str) -> bool:
     """
-    Applies a Mail-chan label AND removes INBOX label (archives email).
-    Email moves out of inbox and appears only under Mail-chan/Category.
+    Applies a Mail-chan label AND removes from inbox (archives it).
     """
     try:
         service.users().messages().modify(
@@ -141,32 +155,35 @@ def apply_label_and_archive(service, message_id: str, label_id: str) -> bool:
                 "removeLabelIds": ["INBOX"]
             }
         ).execute()
-        print(f"Labelled + archived message {message_id}")
+        print(f"[{user_email}] Labelled + archived message {message_id}")
         return True
     except Exception as e:
-        print(f"Apply label error for {message_id}: {type(e).__name__}: {e}")
+        print(f"[{user_email}] Apply label error for {message_id}: {type(e).__name__}: {e}")
         return False
 
 
 def classify_and_label(service, email_data: dict) -> str:
     """
     Full pipeline:
-    1. Classify email with Groq AI
-    2. Get or create Gmail label (with correct color)
-    3. Apply label + archive (removes from inbox)
-    Returns the category string.
+    1. Get current user's email (for per-user cache)
+    2. Classify email with Groq AI
+    3. Get or create Gmail label for THIS user
+    4. Apply label + archive (moves out of inbox)
     """
-    category = classify_email(email_data)
-    print(f"Classified '{email_data.get('subject', '')[:50]}' → {category}")
+    # Get user email once — used as cache key
+    user_email = get_user_email(service)
 
-    label_id = get_or_create_label(service, category)
+    category = classify_email(email_data)
+    print(f"[{user_email}] Classified '{email_data.get('subject', '')[:50]}' → {category}")
+
+    label_id = get_or_create_label(service, category, user_email)
 
     if not label_id:
-        print(f"Skipping Gmail update for {category} — no label ID")
+        print(f"[{user_email}] Skipping Gmail update — no label ID for {category}")
         return category
 
     message_id = email_data.get("id")
     if message_id:
-        apply_label_and_archive(service, message_id, label_id)
+        apply_label_and_archive(service, message_id, label_id, user_email)
 
     return category
