@@ -76,8 +76,15 @@ const css = `
   .mc-heart { position:absolute; top:0; left:50%; font-size:14px; opacity:0; animation:heartFloat 2.5s ease-out infinite; }
   .mc-heart:nth-child(1) { animation-delay:0s; left:30%; }
   .mc-heart:nth-child(2) { animation-delay:1.2s; left:60%; font-size:10px; }
-  .mc-sm .mc-root { transform:scale(0.32) translateY(8px); transform-origin:top center; }
-  .mc-sm { width:36px; height:44px; overflow:hidden; }
+  .mc-sm { width:34px; height:34px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mc-mini { width:34px; height:34px; position:relative; flex-shrink:0; animation:float 3s ease-in-out infinite; }
+  .mc-mini-head { position:absolute; top:0; left:50%; transform:translateX(-50%); width:22px; height:20px; background:linear-gradient(145deg,#FFE8CC,#FFC89A); border-radius:50% 50% 45% 45%; border:1.5px solid rgba(255,160,100,0.4); z-index:2; }
+  .mc-mini-head::before { content:''; position:absolute; top:-5px; left:50%; transform:translateX(-50%); width:26px; height:14px; background:linear-gradient(135deg,#FFD166,#FFC030); border-radius:50% 50% 20% 20%; z-index:3; }
+  .mc-mini-head::after { content:''; position:absolute; top:7px; left:50%; transform:translateX(-50%); width:12px; height:4px; background:radial-gradient(circle at 25% 50%,#2E6BFF 3px,transparent 3px),radial-gradient(circle at 75% 50%,#2E6BFF 3px,transparent 3px); z-index:4; }
+  .mc-mini-clip-l,.mc-mini-clip-r { position:absolute; top:1px; width:5px; height:5px; background:var(--teal); border-radius:50%; z-index:5; box-shadow:0 0 4px var(--teal-glow); }
+  .mc-mini-clip-l { left:3px; } .mc-mini-clip-r { right:3px; }
+  .mc-mini-body { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:26px; height:16px; background:white; border-radius:3px 3px 5px 5px; border:1.5px solid rgba(46,207,191,0.7); z-index:1; }
+  .mc-mini-body::before { content:''; position:absolute; top:0; left:0; right:0; height:8px; background:var(--teal); clip-path:polygon(0 0,100% 0,50% 60%); border-radius:2px 2px 0 0; }
   .mc-lg .mc-root { transform:scale(1.0); transform-origin:bottom center; }
   .mc-lg { width:110px; height:130px; }
   .mc-xl .mc-root { transform:scale(1.4); transform-origin:bottom center; }
@@ -123,7 +130,7 @@ const css = `
   /* ── MAIN APP ── */
   .app { display:flex; flex-direction:column; height:100vh; }
   .header { display:flex; align-items:center; justify-content:space-between; padding:0 20px; height:54px; background:var(--dark2); border-bottom:1px solid var(--dark4); flex-shrink:0; }
-  .header-logo { display:flex; align-items:flex-end; gap:4px; font-family:var(--font-hand); font-size:22px; font-weight:700; color:var(--teal); }
+  .header-logo { display:flex; align-items:center; gap:4px; font-family:var(--font-hand); font-size:22px; font-weight:700; color:var(--teal); }
   .header-right { display:flex; align-items:center; gap:10px; }
   .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border:1px solid var(--dark4); border-radius:20px; padding:4px 12px 4px 8px; font-size:12px; color:var(--text2); }
   .user-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); flex-shrink:0; }
@@ -227,7 +234,7 @@ const css = `
 
   /* ── DRAFT PANEL ── */
   .draft-panel { border-top:1px solid var(--dark4); background:var(--dark2); flex-shrink:0; }
-  .draft-header { padding:10px 20px; border-bottom:1px solid var(--dark4); display:flex; align-items:center; gap:8px; }
+  .draft-header { padding:10px 20px; border-bottom:1px solid var(--dark4); display:flex; align-items:center; gap:8px; overflow:hidden; }
   .draft-title { font-weight:800; font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:2px; }
   .draft-title span { color:var(--teal); }
   .draft-inputs { padding:9px 20px; display:flex; gap:8px; align-items:center; }
@@ -284,7 +291,22 @@ function useToast() {
 }
 
 // ── Mail-Chan Character ───────────────────────────────────────────────────────
+function MailChanMini() {
+  return (
+    <div className="mc-wrap mc-sm">
+      <div className="mc-mini">
+        <div className="mc-mini-head">
+          <div className="mc-mini-clip-l" />
+          <div className="mc-mini-clip-r" />
+        </div>
+        <div className="mc-mini-body" />
+      </div>
+    </div>
+  )
+}
+
 function MailChan({ size = 'lg', hearts = false }) {
+  if (size === 'sm') return <MailChanMini />
   return (
     <div className={`mc-wrap mc-${size}`}>
       <div className="mc-root">
