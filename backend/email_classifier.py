@@ -7,10 +7,22 @@ load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Labels Mail-chan will create + apply in Gmail
 LABELS = ["Work", "Casual", "Advertisement", "Newsletter", "Finance", "Social", "Spam"]
 
-SYSTEM_PROMPT = """You are an email classifier. Given an email's subject and body, 
+# Cache label IDs so we don't call Gmail API repeatedly
+_label_id_cache = {}
+
+LABEL_COLORS = {
+    "Work":          {"backgroundColor": "#1c4587", "textColor": "#ffffff"},
+    "Casual":        {"backgroundColor": "#0d652d", "textColor": "#ffffff"},
+    "Advertisement": {"backgroundColor": "#7d3c98", "textColor": "#ffffff"},
+    "Newsletter":    {"backgroundColor": "#b45f06", "textColor": "#ffffff"},
+    "Finance":       {"backgroundColor": "#bf2600", "textColor": "#ffffff"},
+    "Social":        {"backgroundColor": "#006064", "textColor": "#ffffff"},
+    "Spam":          {"backgroundColor": "#4a4a4a", "textColor": "#ffffff"},
+}
+
+SYSTEM_PROMPT = """You are an email classifier. Given an email's subject and body,
 classify it into EXACTLY ONE of these categories:
 
 - Work: professional emails, job-related, meetings, projects, clients, colleagues
@@ -47,7 +59,6 @@ Classify this email:"""
             temperature=0.1
         )
         result = response.choices[0].message.content.strip()
-        # Validate — fall back to Casual if unexpected
         for label in LABELS:
             if label.lower() in result.lower():
                 return label
@@ -57,61 +68,98 @@ Classify this email:"""
         return "Casual"
 
 
-def get_or_create_label(service, label_name: str) -> str:
-    """Gets existing Gmail label ID or creates it. Returns label ID."""
-    label_colors = {
-        "Work":          {"backgroundColor": "#1c4587", "textColor": "#ffffff"},
-        "Casual":        {"backgroundColor": "#0d652d", "textColor": "#ffffff"},
-        "Advertisement": {"backgroundColor": "#7d3c98", "textColor": "#ffffff"},
-        "Newsletter":    {"backgroundColor": "#b45f06", "textColor": "#ffffff"},
-        "Finance":       {"backgroundColor": "#bf2600", "textColor": "#ffffff"},
-        "Social":        {"backgroundColor": "#006064", "textColor": "#ffffff"},
-        "Spam":          {"backgroundColor": "#4a4a4a", "textColor": "#ffffff"},
-    }
+def get_or_create_label(service, label_name: str) -> str | None:
+    """
+    Gets existing Gmail label ID or creates it.
+    Uses in-memory cache to avoid repeated API calls.
+    Returns label ID or None on failure.
+    """
+    cache_key = label_name.lower()
+    if cache_key in _label_id_cache:
+        return _label_id_cache[cache_key]
+
+    full_name = f"Mail-chan/{label_name}"
 
     try:
-        # Check existing labels
-        existing = service.users().labels().list(userId="me").execute()
-        for lbl in existing.get("labels", []):
-            if lbl["name"].lower() == f"mail-chan/{label_name}".lower():
+        # Fetch all existing labels
+        response = service.users().labels().list(userId="me").execute()
+        existing_labels = response.get("labels", [])
+
+        # Check if label already exists (case-insensitive)
+        for lbl in existing_labels:
+            if lbl.get("name", "").lower() == full_name.lower():
+                _label_id_cache[cache_key] = lbl["id"]
+                print(f"Found existing label: {full_name} → {lbl['id']}")
                 return lbl["id"]
 
-        # Create new label under Mail-chan/ namespace
+        # Create the label
         body = {
-            "name": f"Mail-chan/{label_name}",
+            "name": full_name,
             "labelListVisibility": "labelShow",
             "messageListVisibility": "show",
         }
-        color = label_colors.get(label_name)
+
+        color = LABEL_COLORS.get(label_name)
         if color:
             body["color"] = color
 
+        print(f"Creating label: {full_name}")
         created = service.users().labels().create(userId="me", body=body).execute()
-        return created["id"]
+        label_id = created["id"]
+        _label_id_cache[cache_key] = label_id
+        print(f"Created label: {full_name} → {label_id}")
+        return label_id
 
     except Exception as e:
-        print(f"Label create/get error for {label_name}: {e}")
+        print(f"Label error for '{label_name}': {type(e).__name__}: {e}")
         return None
 
 
-def apply_label_to_email(service, message_id: str, label_id: str):
-    """Applies a Gmail label to a message."""
+def apply_label_and_archive(service, message_id: str, label_id: str) -> bool:
+    """
+    Applies a Mail-chan label AND removes from inbox (archives it).
+    - addLabelIds: adds our custom label
+    - removeLabelIds: removes INBOX so it moves out of inbox
+    """
     try:
+        body = {
+            "addLabelIds": [label_id],
+            "removeLabelIds": ["INBOX"]
+        }
         service.users().messages().modify(
             userId="me",
             id=message_id,
-            body={"addLabelIds": [label_id]}
+            body=body
         ).execute()
+        print(f"Labelled + archived message {message_id}")
         return True
     except Exception as e:
-        print(f"Apply label error: {e}")
+        print(f"Apply label error for {message_id}: {type(e).__name__}: {e}")
         return False
 
 
 def classify_and_label(service, email_data: dict) -> str:
-    """Full pipeline: classify email → get/create label → apply in Gmail."""
+    """
+    Full pipeline:
+    1. Classify email with Groq
+    2. Get or create Gmail label
+    3. Apply label + archive (move out of inbox)
+    Returns the category string.
+    """
+    # Step 1: Classify
     category = classify_email(email_data)
+    print(f"Classified '{email_data.get('subject', '')[:40]}' → {category}")
+
+    # Step 2: Get/create label
     label_id = get_or_create_label(service, category)
-    if label_id:
-        apply_label_to_email(service, email_data["id"], label_id)
+
+    if not label_id:
+        print(f"Could not get/create label for {category}, skipping Gmail update")
+        return category
+
+    # Step 3: Apply label + archive
+    message_id = email_data.get("id")
+    if message_id:
+        apply_label_and_archive(service, message_id, label_id)
+
     return category
