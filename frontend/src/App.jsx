@@ -76,8 +76,8 @@ const css = `
   .mc-heart { position:absolute; top:0; left:50%; font-size:14px; opacity:0; animation:heartFloat 2.5s ease-out infinite; }
   .mc-heart:nth-child(1) { animation-delay:0s; left:30%; }
   .mc-heart:nth-child(2) { animation-delay:1.2s; left:60%; font-size:10px; }
-  .mc-sm .mc-root { transform:scale(0.32); transform-origin:center center; }
-  .mc-sm { width:36px; height:36px; overflow:hidden; }
+  .mc-sm .mc-root { transform:scale(0.32) translateY(8px); transform-origin:top center; }
+  .mc-sm { width:36px; height:44px; overflow:hidden; }
   .mc-lg .mc-root { transform:scale(1.0); transform-origin:bottom center; }
   .mc-lg { width:110px; height:130px; }
   .mc-xl .mc-root { transform:scale(1.4); transform-origin:bottom center; }
@@ -123,7 +123,7 @@ const css = `
   /* ── MAIN APP ── */
   .app { display:flex; flex-direction:column; height:100vh; }
   .header { display:flex; align-items:center; justify-content:space-between; padding:0 20px; height:54px; background:var(--dark2); border-bottom:1px solid var(--dark4); flex-shrink:0; }
-  .header-logo { display:flex; align-items:center; gap:4px; font-family:var(--font-hand); font-size:22px; font-weight:700; color:var(--teal); }
+  .header-logo { display:flex; align-items:flex-end; gap:4px; font-family:var(--font-hand); font-size:22px; font-weight:700; color:var(--teal); }
   .header-right { display:flex; align-items:center; gap:10px; }
   .user-badge { display:flex; align-items:center; gap:8px; background:var(--dark3); border:1px solid var(--dark4); border-radius:20px; padding:4px 12px 4px 8px; font-size:12px; color:var(--text2); }
   .user-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); flex-shrink:0; }
@@ -227,7 +227,7 @@ const css = `
 
   /* ── DRAFT PANEL ── */
   .draft-panel { border-top:1px solid var(--dark4); background:var(--dark2); flex-shrink:0; }
-  .draft-header { padding:10px 20px; border-bottom:1px solid var(--dark4); display:flex; align-items:center; gap:8px; overflow:hidden; }
+  .draft-header { padding:10px 20px; border-bottom:1px solid var(--dark4); display:flex; align-items:center; gap:8px; }
   .draft-title { font-weight:800; font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:2px; }
   .draft-title span { color:var(--teal); }
   .draft-inputs { padding:9px 20px; display:flex; gap:8px; align-items:center; }
