@@ -1,5 +1,4 @@
 import os
-import uuid
 import json
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -13,15 +12,13 @@ from gmail_auth import get_auth_url, exchange_code_for_token, get_gmail_service
 from email_fetcher import get_unread_emails
 from email_drafter import draft_reply
 from email_sender import send_reply
+from email_classifier import classify_and_label, LABELS
 
 load_dotenv()
 
-app = FastAPI(title="AI Email Replier")
+app = FastAPI(title="Mail-chan AI Email Replier")
 
-# Session middleware for storing OAuth tokens
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "change-this-secret"))
-
-# CORS for React dev server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -52,12 +49,27 @@ class SendRequest(BaseModel):
     original_email: dict
     dry_run: bool = True
 
+class ClassifyRequest(BaseModel):
+    email_id: str = ""
+    subject: str = ""
+    sender_raw: str = ""
+    sender: str = ""
+    sender_name: str = ""
+    thread_id: str = ""
+    body: str = ""
+    snippet: str = ""
+    message_id_header: str = ""
+    to: str = ""
+    date: str = ""
+
+class ClassifyAllRequest(BaseModel):
+    emails: list
+
 
 # ── Auth Routes ────────────────────────────────────────────────────────────────
 
 @app.get("/api/auth/login")
 async def login(request: Request):
-    """Redirects user to Google OAuth consent screen."""
     auth_url, state = get_auth_url()
     request.session["oauth_state"] = state
     return RedirectResponse(auth_url)
@@ -65,24 +77,18 @@ async def login(request: Request):
 
 @app.get("/api/auth/callback")
 async def auth_callback(request: Request, code: str, state: str):
-    """Handles OAuth callback, stores token in session."""
     saved_state = request.session.get("oauth_state")
     if state != saved_state:
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
-
     token_data = exchange_code_for_token(code)
     request.session["token"] = token_data
     request.session["authenticated"] = True
-
-    # Redirect to frontend
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
     return RedirectResponse(url=FRONTEND_URL)
 
 
-
 @app.get("/api/auth/status")
 async def auth_status(request: Request):
-    """Returns whether the user is authenticated."""
     authenticated = request.session.get("authenticated", False)
     if authenticated:
         try:
@@ -97,7 +103,6 @@ async def auth_status(request: Request):
 
 @app.get("/api/auth/logout")
 async def logout(request: Request):
-    """Clears session."""
     request.session.clear()
     return {"message": "Logged out"}
 
@@ -106,10 +111,8 @@ async def logout(request: Request):
 
 @app.get("/api/emails")
 async def fetch_emails(request: Request, max_results: int = 20):
-    """Fetches unread emails from Gmail inbox."""
     if not request.session.get("authenticated"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-
     try:
         service = get_gmail_service(request.session["token"])
         emails = get_unread_emails(service, max_results=max_results)
@@ -120,20 +123,12 @@ async def fetch_emails(request: Request, max_results: int = 20):
 
 @app.post("/api/draft")
 async def draft_email_reply(request: Request, body: DraftRequest):
-    """Drafts an AI reply for a given email using Groq."""
     if not request.session.get("authenticated"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-
     email_data = body.dict()
-    reply = draft_reply(
-        email_data=email_data,
-        custom_instructions=body.instructions,
-        user_name=body.user_name
-    )
-
+    reply = draft_reply(email_data=email_data, custom_instructions=body.instructions, user_name=body.user_name)
     if not reply:
         raise HTTPException(status_code=500, detail="Failed to generate reply")
-
     return {"reply": reply}
 
 
@@ -145,7 +140,6 @@ async def send_email_reply(request: Request, body: SendRequest):
         service = get_gmail_service(request.session["token"])
         profile = service.users().getProfile(userId="me").execute()
         user_email = profile["emailAddress"]
-
         result = send_reply(
             service=service,
             original_email=body.original_email,
@@ -153,25 +147,63 @@ async def send_email_reply(request: Request, body: SendRequest):
             sender_email=user_email,
             dry_run=body.dry_run
         )
-
-        # Return success as long as result is not None
         if result is not None:
             return {"success": True, "message_id": result.get("id", "sent")}
         else:
             raise HTTPException(status_code=500, detail="Failed to send reply")
-
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Send route error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ── Classify Routes ────────────────────────────────────────────────────────────
+
+@app.post("/api/classify")
+async def classify_single(request: Request, body: ClassifyRequest):
+    """Classify a single email and apply Gmail label."""
+    if not request.session.get("authenticated"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        service = get_gmail_service(request.session["token"])
+        email_data = body.dict()
+        # Map id field
+        email_data["id"] = body.email_id
+        category = classify_and_label(service, email_data)
+        return {"email_id": body.email_id, "category": category}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/classify-all")
+async def classify_all(request: Request, body: ClassifyAllRequest):
+    """Classify a list of emails and apply Gmail labels to all."""
+    if not request.session.get("authenticated"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        service = get_gmail_service(request.session["token"])
+        results = []
+        for email_data in body.emails:
+            try:
+                category = classify_and_label(service, email_data)
+                results.append({"email_id": email_data.get("id"), "category": category})
+            except Exception as e:
+                print(f"Error classifying {email_data.get('id')}: {e}")
+                results.append({"email_id": email_data.get("id"), "category": "Casual"})
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/labels")
+async def get_labels(request: Request):
+    """Returns the available label categories."""
+    return {"labels": LABELS}
+
+
 # ── Serve React Frontend ───────────────────────────────────────────────────────
-# This serves the built React app in production
-import os
 if os.path.exists("frontend/dist"):
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
-
 
 if __name__ == "__main__":
     import uvicorn
